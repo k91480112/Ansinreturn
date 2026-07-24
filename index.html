@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>護理部每日業務回報建立器 V6 Beta 2.0 Preview</title>
+<title>護理部每日業務回報建立器 V6 Beta 2.0 Preview HIS 訊息格式－I班二撥整合</title>
 <style>
 :root{--bg:#f4f7f8;--card:#fff;--text:#1f2937;--muted:#64748b;--line:#dbe3e8;--primary:#287a67;--primary2:#e7f4ef;--danger:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
@@ -51,7 +51,7 @@ let abdIncludeBiz=false; // 從院所交班接續加入個人業務
 const commonBiz={
 '欠卡追蹤':'contact','外傷照片歸檔':'dateShift','方鼎輸入及核對':'dateCount','預防保健電訪':'contact','預防保健輸入':'twoStage','未看報告追蹤':'contact','身心科預約':'contactSecond','慢病預約名單':'pulledDate','慢病預約反黃':'dateShift','連處回填':'dateShift','慢病預約電訪':'dateContactSecond','慢病未回':'dayContact','急性追蹤':'contact','抽血異常追蹤':'contact','轉診追蹤':'contact','病例歸檔':'fileCount'};
 const iBiz={
-'收案衛教':'intakeGroup','結案電訪':'closureGroup','電訪追蹤':'followupGroup','療程核對':'dateOnly','業務報表':'doneYearMonth','他院VPN查詢':'vpn','慢病預約反黃':'dateShift','慢病預約名單':'pulledDate','慢病預約電訪':'dateContact','慢病預約 2 撥':'dateContact','慢病未回':'dayContactNoNone','長期未回':'contact','長期未回 2 撥':'contact'};
+'收案衛教':'intakeGroup','結案電訪':'closureGroup','電訪追蹤':'followupGroup','療程核對':'dateOnly','業務報表':'doneYearMonth','他院VPN查詢':'vpn','慢病預約反黃':'dateShift','慢病預約名單':'pulledDate','慢病預約電訪':'dateContactSecond','慢病未回':'dayContact','長期未回':'contactSecond'};
 function taipeiParts(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=t=>parts.find(x=>x.type===t)?.value||'';return {year:Number(get('year')),month:Number(get('month')),day:Number(get('day'))}}
 function today(){const d=taipeiParts();return `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`}
 function clinicOptions(){return clinics.map(x=>`<option>${x}</option>`).join('')}
