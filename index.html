@@ -34,8 +34,21 @@ h2{font-size:18px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repea
 /* V6 Beta 2.0 Preview：緊湊版面與群組業務 */
 .group-biz{display:flex;flex-direction:column;gap:8px}.group-biz .subcard{margin-top:0}.group-row{display:grid;grid-template-columns:110px repeat(5,minmax(72px,1fr));gap:7px;align-items:end}.group-row.eye{grid-template-columns:110px repeat(6,minmax(70px,1fr))}.group-row.mj{grid-template-columns:110px minmax(90px,1fr)}.group-name{font-weight:850;padding-bottom:10px}.compact-check{display:flex;align-items:center;gap:6px;margin:0}.compact-check input{width:auto}.section{margin-top:12px;padding-top:12px}.item,.business-card,.clinic-card{margin:7px 0}.subcard{margin-top:7px}.preview{line-height:1.48}
 @media(max-width:900px){.group-row,.group-row.eye,.group-row.mj{grid-template-columns:1fr 1fr}.group-name{grid-column:1/-1;padding-bottom:0}}
+
+/* 下班時段提醒：獨立提示層，不影響原有表單介面與邏輯 */
+.offhours-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.58);padding:20px;align-items:center;justify-content:center}
+.offhours-overlay.open{display:flex}
+.offhours-dialog{width:min(460px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 18px 50px rgba(15,23,42,.25);text-align:center}
+.offhours-message{font-size:18px;font-weight:850;line-height:1.7;margin:0 0 18px;color:#1f2937}
+.offhours-dialog .btn{min-width:160px}
 </style></head>
-<body><header><h1>護理部每日業務回報建立器</h1><p>交班、追蹤、行政回報整合工具｜資料僅保存在目前瀏覽器</p></header>
+<body><div id="offhoursOverlay" class="offhours-overlay" role="dialog" aria-modal="true" aria-labelledby="offhoursMessage">
+  <div class="offhours-dialog">
+    <p id="offhoursMessage" class="offhours-message">【現在為下班時段，工作訊息請於上班時段進行】</p>
+    <button type="button" class="btn btn-primary" id="offhoursContinue">確定仍要填寫</button>
+  </div>
+</div>
+<header><h1>護理部每日業務回報建立器</h1><p>交班、追蹤、行政回報整合工具｜資料僅保存在目前瀏覽器</p></header>
 <main class="app"><section class="panel"><h2>選擇建立種類</h2><div id="typeButtons"></div><div id="formRoot" class="section"></div><div class="management-label">管理功能</div><details class="staff-tools" id="staffTools"><summary id="staffSummary">【後台維護人員專區】 🔒</summary><div class="staff-tools-body"><div class="item-head"><div><b id="staffState">後台維護人員專區（已登入）</b><div class="note">此區包含可載入舊內容的功能，使用後請逐項重新確認。</div></div><button class="btn btn-light" id="staffLogout">登出</button></div><div class="btn-row"><button class="btn btn-light" id="saveDraft">儲存草稿</button><button class="btn btn-light" id="loadDraft">載入草稿</button><button class="btn btn-light" id="saveTemplate">儲存為範本</button><button class="btn btn-light" id="openTemplates">範本管理</button><button class="btn btn-light" id="saveHistory">儲存交班</button><button class="btn btn-light" id="openHistory">交班歷史</button><button class="btn btn-light" id="exportJson">匯出 JSON</button><label class="btn btn-light" style="display:inline-flex;align-items:center;margin:0">匯入 JSON<input id="importJson" type="file" accept="application/json,.json" style="display:none"></label><button class="btn btn-danger" id="clearAll">新交班／清除表單</button></div><div id="status" class="status">一般使用模式不會自動儲存或載入草稿。</div><div id="managerPanel" class="section hidden"></div><div class="section"><h2>系統資訊</h2><p class="note">版本：V6 Beta 2.0 Preview<br>更新日期：2026/07/24<br>本版調整：一般使用模式不再自動儲存、載入或提示舊草稿；僅後台維護人員登入後可使用草稿、範本、歷史與 JSON 功能；其餘既有修正維持不變。</p><button class="btn btn-light" id="copyVersion">📋 複製版本資訊</button></div></div></details></section>
 <aside class="panel preview-wrap"><h2>LINE 訊息即時預覽</h2><div id="preview" class="preview"></div><div class="btn-row"><button class="btn btn-primary" id="copyBtn">📋 複製 LINE 訊息</button><button class="btn btn-light" id="copyClearBtn">複製後清除</button></div></aside></main>
 <div class="mobile-action-bar"><button class="btn btn-light" id="mobilePreviewBtn">👁 預覽訊息</button><button class="btn btn-primary" id="mobileCopyBtn">📋 複製 LINE 訊息</button></div>
@@ -264,5 +277,30 @@ importJson.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const
 // 清除舊版曾永久保留的後台登入狀態，避免共用電腦下次開啟時直接進入後台。
 try{localStorage.removeItem('nursingV5StaffLoggedIn')}catch{}
 renderForm();
+
+
+// 下班時段提醒：以台灣時間判斷，每次載入頁面只檢查一次。
+(function initOffhoursNotice(){
+  try{
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+    const hour=Number(parts.find(p=>p.type==='hour')?.value);
+    const minute=Number(parts.find(p=>p.type==='minute')?.value);
+    const totalMinutes=hour*60+minute;
+    const isOffhours=totalMinutes>=20*60+30 || totalMinutes<8*60;
+    if(!isOffhours)return;
+    const overlay=document.getElementById('offhoursOverlay');
+    const continueBtn=document.getElementById('offhoursContinue');
+    if(!overlay||!continueBtn)return;
+    overlay.classList.add('open');
+    document.body.style.overflow='hidden';
+    continueBtn.focus();
+    continueBtn.addEventListener('click',()=>{
+      overlay.classList.remove('open');
+      document.body.style.overflow='';
+    },{once:true});
+  }catch(e){
+    // 若時間判斷不可用，維持原系統正常進入，不阻擋既有功能。
+  }
+})();
 
 </script></body></html>
