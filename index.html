@@ -241,7 +241,8 @@ function autoSave(){
 let saveTimer;function scheduleAutoSave(){if(!staffLoggedIn())return;clearTimeout(saveTimer);saveTimer=setTimeout(autoSave,250)}
 document.addEventListener('input',()=>{render();scheduleAutoSave()});
 document.addEventListener('change',scheduleAutoSave);
-async function copy(clear){try{await navigator.clipboard.writeText(preview.textContent)}catch{const a=document.createElement('textarea');a.value=preview.textContent;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}status.textContent='已複製，可直接貼到 LINE。';if(clear)setTimeout(()=>{renderForm();autoSave()},200)}
+function validateVaccineExpiry(){if(current!=='clinic')return true;const mode=formRoot.querySelector('input[name=vaccineMode]:checked')?.value;if(mode!=='data')return true;const rows=[...formRoot.querySelectorAll('#vaccineFields .vaccine-row')];for(let i=0;i<rows.length;i++){const r=rows[i],stock=val(r,'[data-v=stock]'),expiry=r.querySelector('[data-v=expiry]');if(Number(stock)>0&&!expiry?.value){const name=val(r,'[data-v=name]')||['皰疹疫苗','肺鏈疫苗','B 肝疫苗','破傷風'][i]||'其他';alert(`「${name}」庫存大於0，請填寫效期。`);if(expiry){expiry.scrollIntoView({behavior:'smooth',block:'center'});expiry.focus()}return false}}return true}
+async function copy(clear){if(!validateVaccineExpiry())return;try{await navigator.clipboard.writeText(preview.textContent)}catch{const a=document.createElement('textarea');a.value=preview.textContent;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}status.textContent='已複製，可直接貼到 LINE。';if(clear)setTimeout(()=>{renderForm();autoSave()},200)}
 function getList(key){try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return[]}}
 function setList(key,v){localStorage.setItem(key,JSON.stringify(v))}
 function safeName(prefix){const d=new Date(),pad=n=>String(n).padStart(2,'0');return `${prefix}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`}
@@ -256,7 +257,7 @@ document.getElementById('copyVersion').onclick=async()=>{const text='護理部�
 updateStaffLabel();
 copyBtn.onclick=()=>copy(false);copyClearBtn.onclick=()=>copy(true);
 const previewModal=document.getElementById('previewModal'),modalPreview=document.getElementById('modalPreview');
-function openMobilePreview(){modalPreview.textContent=preview.textContent;previewModal.classList.add('open');document.body.style.overflow='hidden'}
+function openMobilePreview(){if(!validateVaccineExpiry())return;modalPreview.textContent=preview.textContent;previewModal.classList.add('open');document.body.style.overflow='hidden'}
 function closeMobilePreview(){previewModal.classList.remove('open');document.body.style.overflow=''}
 document.getElementById('mobilePreviewBtn').onclick=openMobilePreview;
 document.getElementById('closePreviewModal').onclick=closeMobilePreview;
